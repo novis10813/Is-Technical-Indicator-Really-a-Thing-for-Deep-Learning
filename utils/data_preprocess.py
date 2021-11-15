@@ -105,5 +105,15 @@ class DataPreprocess:
     def test(self):
         return self.make_dataset(self.test_df)
 
-def buy_sell_threshold():
-    pass
+def buy_sell_threshold(data, alpha):
+    data['Log_return'] = np.log(data.Close).diff()
+    
+    for i in range(len(data)):
+        if data.Log_return[i+1] >= data.Log_return[i](1+alpha*(data.Close.rolling(10).std())):
+            data['State'] = 'Buy'
+        elif data.Log_return[i+1] <= data.Log_return[i](1 - alpha*data.Close.rolling(10).std()):
+            data['State'] = 'Sell'
+        else:
+            data['State'] = 'Hold'
+    
+    return data
