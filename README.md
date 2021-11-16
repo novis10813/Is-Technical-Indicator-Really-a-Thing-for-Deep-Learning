@@ -9,7 +9,7 @@ There will be two models, one is an MLP model and the other one is a model with 
 
 They will use 24 data point (two hours) to predict the close price after one hour, and use the price to determine the buy & sell action.
 
-# MLP model
+### MLP model
 4 fully-connected layers
 
 64 -> 128 -> 64 -> Output size
