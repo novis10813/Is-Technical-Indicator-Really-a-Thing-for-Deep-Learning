@@ -4,6 +4,63 @@ import matplotlib.pyplot as plt
 import talib as ta
 import tensorflow as tf
 
+class DataLabeling:
+    """
+    This class will label the data with `Buy` `Sell` or `Hold` based on the dynamic threshold of log return.
+    Threshold:
+        if next close price >= current close price * (1 + alpha * Volatility of last hour), tag it 'up' label
+        elif next close price <= current close price * (1 - alpha * Volatility of last hour), tag it 'down' label
+        else tag it with 'flat'
+    Base on the three categories, we can detect the trend of the price movement.
+    When the tags change from 'down' to 'up' or 'flat' to 'up', it will enter a long trade with a tag of 'Buy',
+    and the tags change from 'up' to 'down' or 'flat' to 'down', it will enter a short trade with a tag of 'Sell',
+    otherwise, it will do nothing with a tag of 'Hold'.
+    
+    Also, if TI is True, it will automatically add features of technical indicators for you.
+    The TIs are based on TA-lib
+    """
+    def __init__(self, data, volatility_period, alpha=0.55):
+        # initialize data and parameters
+        self.data = data.set_index('Timestamp').loc[:, ['Open', 'High', 'Low', 'Close', 'Volume']]
+        self.alpha = alpha
+        self.volatility_period = volatility_period
+    
+    def make_label(self, data):
+        # Setup a Threshold for Buy, Sell, Hold Label
+        data['Trend'] = np.where(data.Close >= data.Close.shift(1)*(1+self.alpha*data.Close.rolling(self.volatility_period).std()), 1,
+                                      np.where(data.Close <= data.Close.shift(1)*(1-self.alpha*self.data.Close.rolling(self.volatility_period).std()), -1, 0))
+        data = data.dropna()
+        data['Label'] = np.where(data.Trend < data.Trend.shift(-1), 'Buy',
+                                 np.where(data.Trend > data.Trend.shift(-1), 'Sell', 'Hold'))
+        
+        data = data.dropna().drop(['Trend'], axis=1)
+        return data
+    
+    def make_TI(self, data):
+        data['Chaikin'] = ta.AD(data.High, data.Low, data.Close, data.Volume)
+        data['Trange'] = ta.TRANGE(data.High, data.Low, data.Close)
+        data['Hammer'] = ta.CDLHAMMER(data.Open, data.High, data.Low, data.Close)
+        data['ShootingStar'] = ta.CDLSHOOTINGSTAR(data.Open, data.High, data.Low, data.Close)
+        for i in [5, 7, 14, 30]:
+            data[f'RSI_{i}'] = ta.RSI(data.Close, timeperiod=i)
+            data[f"DX_{i}"] = ta.DX(data.High, data.Low, data.Close, timeperiod=i)
+            data[f"ADX_{i}"] = ta.ADX(data.High, data.Low, data.Close, timeperiod=i)
+            data[f"ADXR_{i}"] = ta.ADXR(data.High, data.Low, data.Close, timeperiod=i)
+            data[f'EMA_{i}'] = ta.EMA(data.Close, timeperiod=i)
+            data[f'BBand_upper_{i}'], _, data[f'BBand_lower_{i}'] = ta.BBANDS(data.Close, timeperiod=i, nbdevup=2, nbdevdn=2, matype=0)
+            data[f'DEMA_{i}'] = ta.DEMA(data.Close, timeperiod=i)
+            data[f'NATR_{i}'] = ta.NATR(data.High, data.Low, data.Close, timeperiod=i)
+            
+        return data
+    
+    @property
+    def labelled_data(self):
+        return self.make_label(self.data)
+    
+    @property
+    def TI_data(self):
+        return self.make_label(self.make_TI(self.data))
+        
 def data_split(data, kfolds):
     """
     Create a function to split the data into subsets
