@@ -16,7 +16,7 @@ class DataLabeling:
     and the tags change from 'up' to 'down' or 'flat' to 'down', it will enter a short trade with a tag of 'Sell',
     otherwise, it will do nothing with a tag of 'Hold'.
     
-    Also, if TI is True, it will automatically add features of technical indicators for you.
+    Also, it will automatically add features of technical indicators for you.
     The TIs are based on TA-lib
     """
     def __init__(self, data, volatility_period, alpha=0.55):
