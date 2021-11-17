@@ -8,8 +8,8 @@ class DataLabeling:
     """
     This class will label the data with `Buy` `Sell` or `Hold` based on the dynamic threshold of log return.
     Threshold:
-        if next close price >= current close price * (1 + alpha * Volatility of last hour), tag it 'up' label
-        elif next close price <= current close price * (1 - alpha * Volatility of last hour), tag it 'down' label
+        if next period close price >= current close price * (1 + alpha * Volatility of last hour), tag it 'up' label
+        elif next period close price <= current close price * (1 - alpha * Volatility of last hour), tag it 'down' label
         else tag it with 'flat'
     Base on the three categories, we can detect the trend of the price movement.
     When the tags change from 'down' to 'up' or 'flat' to 'up', it will enter a long trade with a tag of 'Buy',
@@ -19,24 +19,58 @@ class DataLabeling:
     Also, it will automatically add features of technical indicators for you.
     The TIs are based on TA-lib
     """
-    def __init__(self, data, volatility_period, alpha=0.55):
+    def __init__(self, data, window_size, alpha=0.55):
         # initialize data and parameters
         self.data = data.set_index('Timestamp').loc[:, ['Open', 'High', 'Low', 'Close', 'Volume']]
-        self.alpha = alpha
-        self.volatility_period = volatility_period
+        self.__alpha = alpha
+        self.__window_size = window_size
     
-    def make_label(self, data):
+    def __make_label(self, data):
         # Setup a Threshold for Buy, Sell, Hold Label
-        data['Trend'] = np.where(data.Close >= data.Close.shift(1)*(1+self.alpha*data.Close.rolling(self.volatility_period).std()), 1,
-                                      np.where(data.Close <= data.Close.shift(1)*(1-self.alpha*self.data.Close.rolling(self.volatility_period).std()), -1, 0))
+        data['STD'] = data.Close.rolling(self.__window_size).std()
+        data['Next_Close'] = data.Close.shift(-self.__window_size)
         data = data.dropna()
-        data['Label'] = np.where(data.Trend < data.Trend.shift(-1), 'Buy',
-                                 np.where(data.Trend > data.Trend.shift(-1), 'Sell', 'Hold'))
+        data['Trend'] = np.where(data.Next_Close >= data.Close*(1+self.__alpha*data.STD), 1,
+                                      np.where(data.Next_Close <= data.Close*(1-self.__alpha*data.STD), -1, 0))
+        data['Previous_Trend'] = data.Trend.shift(fill_value=0)
+        # A cursed method
+        # for i in range(len(data)):
+        #     if data['Trend'][i] == 0:
+        #         data['Label'] = 'Hold'
+                
+        #     elif data['Trend'][i] == 1:
+        #         if data['Previous_Trend'][i] == 0:
+        #             data['Label'] = 'Buy'
+        #         elif data['Previous_Trend'][i] == -1:
+        #             data['Label'] = 'Buy'
+        #         else:
+        #             data['Label'] = 'Hold'
+            
+        #     elif data['Trend'][i] == -1:
+        #         if data['Previous_Trend'][i] == 0:
+        #             data['Label'] = 'Sell'
+        #         elif data['Previous_Trend'][i] == -1:
+        #             data['Label'] = 'Hold'
+        #         else:
+        #             data['Label'] = 'Sell'
         
-        data = data.dropna().drop(['Trend'], axis=1)
+        # data['Label'] = np.where(data.Trend > data.Previous_Trend, 'Buy',
+        #                          np.where(data.Trend < data.Previous_Trend, 'Sell', 'Hold'))
+        # There will be problems using this function under some situations,  like Trend is 0 and Previous_Trend is -1, so the label will be `Buy`,
+        # however, if the next Trend is -1, it says that the price is keeping going down, so you actually should not buy at that time.
+        data = data.assign(Label=data.apply(self.__func, axis=1))
+        data = data.dropna().drop(['Next_Close','STD','Trend', 'Previous_Trend'], axis=1)
         return data
     
-    def make_TI(self, data):
+    def __func(self, df):
+        if (df['Trend'] == 0) or (df['Trend'] == 1 and df['Previous_Trend'] == 1) or (df['Trend'] == -1 and df['Previous_Trend'] == -1):
+            return 'Hold'
+        elif (df['Trend'] == 1) and (df['Previous_Trend'] == 0 or -1):
+            return 'Buy'
+        elif (df['Trend'] == -1) and (df['Previous_Trend'] == 0 or 1):
+            return 'Sell'
+    
+    def __make_TI(self, data):
         data['Chaikin'] = ta.AD(data.High, data.Low, data.Close, data.Volume)
         data['Trange'] = ta.TRANGE(data.High, data.Low, data.Close)
         data['Hammer'] = ta.CDLHAMMER(data.Open, data.High, data.Low, data.Close)
@@ -55,11 +89,11 @@ class DataLabeling:
     
     @property
     def labelled_data(self):
-        return self.make_label(self.data)
+        return self.__make_label(self.data)
     
     @property
     def TI_data(self):
-        return self.make_label(self.make_TI(self.data))
+        return self.__make_label(self.__make_TI(self.data))
         
 def data_split(data, kfolds):
     """
@@ -161,16 +195,3 @@ class DataPreprocess:
     @property
     def test(self):
         return self.make_dataset(self.test_df)
-
-def buy_sell_threshold(data, alpha):
-    data['Log_return'] = np.log(data.Close).diff()
-    
-    for i in range(len(data)):
-        if data.Log_return[i+1] >= data.Log_return[i](1+alpha*(data.Close.rolling(10).std())):
-            data['State'] = 'Buy'
-        elif data.Log_return[i+1] <= data.Log_return[i](1 - alpha*data.Close.rolling(10).std()):
-            data['State'] = 'Sell'
-        else:
-            data['State'] = 'Hold'
-    
-    return data
