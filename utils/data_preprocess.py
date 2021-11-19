@@ -31,7 +31,7 @@ class DataLabeling:
         data['Next_Close'] = data.Close.shift(-self.__window_size)
         data = data.dropna()
         data['Trend'] = np.where(data.Next_Close >= data.Close*(1+self.__alpha*data.STD), 1,
-                                      np.where(data.Next_Close <= data.Close*(1-self.__alpha*data.STD), -1, 0))
+                                      np.where(data.Next_Close <= data.Close*(1-self.__alpha*data.STD), 2, 0))
         data['Previous_Trend'] = data.Trend.shift(fill_value=0)
         # A cursed method
         # for i in range(len(data)):
@@ -63,12 +63,12 @@ class DataLabeling:
         return data
     
     def __func(self, df):
-        if (df['Trend'] == 0) or (df['Trend'] == 1 and df['Previous_Trend'] == 1) or (df['Trend'] == -1 and df['Previous_Trend'] == -1):
-            return 'Hold'
-        elif (df['Trend'] == 1) and (df['Previous_Trend'] == 0 or -1):
-            return 'Buy'
-        elif (df['Trend'] == -1) and (df['Previous_Trend'] == 0 or 1):
-            return 'Sell'
+        if (df['Trend'] == 0) or (df['Trend'] == 1 and df['Previous_Trend'] == 1) or (df['Trend'] == 2 and df['Previous_Trend'] == 2):
+            return 0
+        elif (df['Trend'] == 1) and (df['Previous_Trend'] == 0 or 2):
+            return 1
+        elif (df['Trend'] == 2) and (df['Previous_Trend'] == 0 or 1):
+            return 2
     
     def __make_TI(self, data):
         data['Chaikin'] = ta.AD(data.High, data.Low, data.Close, data.Volume)
@@ -161,7 +161,7 @@ class DataPreprocess:
             f'Label column name(s): {self.label_columns}'])
         
     def split_window(self, features):
-        inputs = features[:, self.input_slice, :]
+        inputs = features[:, self.input_slice, :-1] # exclude Label column
         labels = features[:, self.labels_slice, :]
         if self.label_columns is not None:
             labels = tf.stack(
