@@ -30,8 +30,9 @@ class DataLabeling:
         data['STD'] = data.Close.rolling(self.__window_size).std()
         data['Next_Close'] = data.Close.shift(-self.__window_size)
         data = data.dropna()
-        data['Trend'] = np.where(data.Next_Close >= data.Close*(1+self.__alpha*data.STD), 1,
-                                      np.where(data.Next_Close <= data.Close*(1-self.__alpha*data.STD), 2, 0))
+        data = data.assign(Trend=data.apply(self.__func_2, axis=1))
+        # data['Trend'] = np.where(data.Next_Close >= data.Close*(1+self.__alpha*data.STD), 1,
+        #                               np.where(data.Next_Close <= data.Close*(1-self.__alpha*data.STD), 2, 0))
         data['Previous_Trend'] = data.Trend.shift(fill_value=0)
         # A cursed method
         # for i in range(len(data)):
@@ -70,11 +71,17 @@ class DataLabeling:
         elif (df['Trend'] == 2) and (df['Previous_Trend'] == 0 or 1):
             return 2
     
+    def __func_2(self, df):
+        if df.Next_Close >= df.Close*(1+self.__alpha*df.STD):
+            return 1
+        elif df.Next_Close <= df.Close*(1-self.__alpha*df.STD):
+            return 2
+        else:
+            return 0
+    
     def __make_TI(self, data):
         data['Chaikin'] = ta.AD(data.High, data.Low, data.Close, data.Volume)
         data['Trange'] = ta.TRANGE(data.High, data.Low, data.Close)
-        data['Hammer'] = ta.CDLHAMMER(data.Open, data.High, data.Low, data.Close)
-        data['ShootingStar'] = ta.CDLSHOOTINGSTAR(data.Open, data.High, data.Low, data.Close)
         for i in [5, 7, 14, 30]:
             data[f'RSI_{i}'] = ta.RSI(data.Close, timeperiod=i)
             data[f"DX_{i}"] = ta.DX(data.High, data.Low, data.Close, timeperiod=i)
