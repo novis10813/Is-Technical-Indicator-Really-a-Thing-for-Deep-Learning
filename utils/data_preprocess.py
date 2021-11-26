@@ -132,7 +132,7 @@ class DataPreprocess:
     source: https://www.tensorflow.org/tutorials/structured_data/time_series#data_windowing
     """
     def __init__(self, train_df, val_df, test_df,
-                 window_size, label_size, label_columns=None, shift=1):
+                 window_size, label_size, label_columns=None, batch_size=12, shift=1):
         
         # raw data
         self.train_df = train_df
@@ -159,6 +159,8 @@ class DataPreprocess:
         self.label_start = self.total_window_size - self.label_size
         self.labels_slice = slice(self.label_start, None)
         self.label_indices = np.arange(self.total_window_size)[self.labels_slice]
+        
+        self.batch_size = batch_size
     
     def __repr__(self):
         return '\n'.join([
@@ -187,7 +189,7 @@ class DataPreprocess:
             sequence_length=self.total_window_size,
             sequence_stride=1,
             shuffle=False,
-            batch_size=128)
+            batch_size=self.batch_size)
         ds = ds.map(self.split_window)
         return ds
     

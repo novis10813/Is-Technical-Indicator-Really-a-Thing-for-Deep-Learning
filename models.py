@@ -6,10 +6,14 @@ class MLP_model:
         self.window_size = window_size
         self.features = features
     
+    def summary(self):
+        return self.model.summary()
+    
     @property
     def model(self):
         input = tf.keras.Input(shape=(self.window_size, self.features), name='input_layer')
-        x = layers.Dense(300, activation='relu', kernel_regularizer=regularizers.l2(0.00001), kernel_initializer='random_normal')(input)
+        x = layers.Flatten()(input)
+        x = layers.Dense(300, activation='relu', kernel_regularizer=regularizers.l2(0.00001), kernel_initializer='random_normal')(x)
         x = layers.Dropout(0.7)(x)
         x = layers.Dense(200, activation='relu', kernel_regularizer=regularizers.l2(0.00001), kernel_initializer='random_normal')(x)
         x = layers.Dropout(0.7)(x)
@@ -27,6 +31,17 @@ class MLP_model:
         model.compile(optimizer='adam', loss='sparse_categorical_crossentropy', metrics=['accuracy'])
         
         return model
+    
+    def fit(self, x, y=None, epochs=1, validation_data=None, steps_per_epoch=None, validation_steps=None, callbacks=None):
+        history = self.model.fit(x=x,
+                                 y=y,
+                                 epochs=epochs,
+                                 validation_data=validation_data,
+                                 steps_per_epoch=steps_per_epoch,
+                                 validation_steps=validation_steps,
+                                 callbacks=callbacks,
+                                 shuffle=False)
+        return history
 
 class CDT_1D_model:
     def __init__(self, window_size, features):
@@ -40,6 +55,9 @@ class CDT_1D_model:
         ], name=f'feature_extractor_{id}')
     
         return block
+    
+    def summary(self):
+        return self.model.summary()
 
     @property
     def model(self):
