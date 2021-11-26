@@ -33,3 +33,8 @@ class Backtesting:
     #     plt.xlabel('Time')
     #     plt.ylabel('Price')
     #     plt.show()
+    
+
+def weighted_F_score(y_true, y_pred):
+    # true_positive = 
+    pass
