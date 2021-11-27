@@ -1,3 +1,5 @@
+from sklearn.preprocessing import MinMaxScaler
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -29,7 +31,7 @@ class DataLabeling:
         # Setup a Threshold for Buy, Sell, Hold Label
         data['STD'] = data.Close.rolling(self.__window_size).std()
         data['Next_Close'] = data.Close.shift(-self.__window_size)
-        data = data.dropna()
+        data = data.fillna(0)
         data = data.assign(Trend=data.apply(self.__func_2, axis=1))
         # data['Trend'] = np.where(data.Next_Close >= data.Close*(1+self.__alpha*data.STD), 1,
         #                               np.where(data.Next_Close <= data.Close*(1-self.__alpha*data.STD), 2, 0))
@@ -61,6 +63,10 @@ class DataLabeling:
         # however, if the next Trend is -1, it says that the price is keeping going down, so you actually should not buy at that time.
         data = data.assign(Label=data.apply(self.__func, axis=1))
         data = data.dropna().drop(['Next_Close','STD','Trend', 'Previous_Trend'], axis=1)
+        
+        # Normalized the data
+        scaler = MinMaxScaler()
+        data.iloc[:, :-1] = scaler.fit_transform(data.iloc[:, :-1])
         return data
     
     def __func(self, df):
