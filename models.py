@@ -36,7 +36,7 @@ class CDT_1D_model:
         
     def __CNN_blocks(self, id, filters, kernel_size, pool_size, pool_strides):
         block = tf.keras.Sequential([
-            tf.keras.layers.Convolution2D(filters=filters, kernel_size=(1, kernel_size), strides=1, padding='same', kernel_regularizer=regularizers.l2(0.00001), kernel_initializer='random_normal'),
+            tf.keras.layers.Convolution2D(filters=filters, kernel_size=(1, kernel_size), strides=1, padding='same', activation='relu', kernel_regularizer=regularizers.l2(0.00001), kernel_initializer='random_normal'),
             tf.keras.layers.MaxPool2D(pool_size=(1, pool_size), strides=(1, pool_strides), padding='valid')
         ], name=f'feature_extractor_{id}')
     

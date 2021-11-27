@@ -210,3 +210,15 @@ class DataPreprocess:
     @property
     def test(self):
         return self.make_dataset(self.test_df)
+
+import os
+def create_model_checkpoint(model_name, save_path='model_experiments'):
+    """
+    Create a Model callback to store the best performance model based on val_loss.
+    Stores model with the filepath:
+        "model_experiments/model_name"
+    """
+    return tf.keras.callbacks.ModelCheckpoint(filepath=os.path.join(save_path, model_name),
+                                              verbose=0, # only output text when model is saved
+                                              monitor='val_loss',
+                                              save_best_only=True)
