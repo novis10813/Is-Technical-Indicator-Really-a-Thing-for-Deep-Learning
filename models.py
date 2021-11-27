@@ -6,9 +6,6 @@ class MLP_model:
         self.window_size = window_size
         self.features = features
     
-    def summary(self):
-        return self.model.summary()
-    
     @property
     def model(self):
         input = tf.keras.Input(shape=(self.window_size, self.features), name='input_layer')
@@ -32,17 +29,6 @@ class MLP_model:
         
         return model
     
-    def fit(self, x, y=None, epochs=1, validation_data=None, steps_per_epoch=None, validation_steps=None, callbacks=None):
-        history = self.model.fit(x=x,
-                                 y=y,
-                                 epochs=epochs,
-                                 validation_data=validation_data,
-                                 steps_per_epoch=steps_per_epoch,
-                                 validation_steps=validation_steps,
-                                 callbacks=callbacks,
-                                 shuffle=False)
-        return history
-
 class CDT_1D_model:
     def __init__(self, window_size, features):
         self.window_size = window_size
@@ -50,14 +36,11 @@ class CDT_1D_model:
         
     def __CNN_blocks(self, id, filters, kernel_size, pool_size, pool_strides):
         block = tf.keras.Sequential([
-            tf.keras.layers.Convolution2D(filters=filters, kernel_size=(1, kernel_size), strides=1, padding='same'),
+            tf.keras.layers.Convolution2D(filters=filters, kernel_size=(1, kernel_size), strides=1, padding='same', kernel_regularizer=regularizers.l2(0.00001), kernel_initializer='random_normal'),
             tf.keras.layers.MaxPool2D(pool_size=(1, pool_size), strides=(1, pool_strides), padding='valid')
         ], name=f'feature_extractor_{id}')
     
         return block
-    
-    def summary(self):
-        return self.model.summary()
 
     @property
     def model(self):
@@ -67,10 +50,12 @@ class CDT_1D_model:
         x = self.__CNN_blocks(id=1, filters=32, kernel_size=4, pool_size=4, pool_strides=4)(x)
         x = self.__CNN_blocks(id=2, filters=64, kernel_size=3, pool_size=3, pool_strides=3)(x)
         x = self.__CNN_blocks(id=3, filters=128, kernel_size=2, pool_size=2, pool_strides=2)(x)
-        x = tf.keras.layers.Lambda(lambda x: tf.squeeze(x, axis=2), name='reduce_dim')(x)
+        # x = tf.keras.layers.Lambda(lambda x: tf.squeeze(x, axis=2), name='reduce_dim')(x)
         x = tf.keras.layers.Flatten()(x)
-        x = tf.keras.layers.Dense(1000, activation='relu')(x)
-        x = tf.keras.layers.Dense(500, activation='relu')(x)
+        x = tf.keras.layers.Dense(1000, activation='relu', kernel_regularizer=regularizers.l2(0.00001), kernel_initializer='random_normal')(x)
+        x = tf.keras.layers.Dropout(0.7)(x)
+        x = tf.keras.layers.Dense(500, activation='relu', kernel_regularizer=regularizers.l2(0.00001), kernel_initializer='random_normal')(x)
+        x = tf.keras.layers.Dropout(0.7)(x)
         output = tf.keras.layers.Dense(3, activation='softmax')(x)
         model = tf.keras.Model(input, output, name='CDT-1D_model')
 
