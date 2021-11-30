@@ -24,6 +24,9 @@ class DataLabeling:
     def __init__(self, data, window_size, alpha=0.55):
         # initialize data and parameters
         self.data = data.set_index('Timestamp').loc[:, ['Open', 'High', 'Low', 'Close', 'Volume']]
+        self.data = self.data.set_index('Timestamp')
+        self.data.index = pd.to_datetime(self.data.index)
+        
         self.__alpha = alpha
         self.__window_size = window_size
     
