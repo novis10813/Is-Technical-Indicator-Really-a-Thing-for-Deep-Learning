@@ -6,7 +6,24 @@ from tensorflow.keras.metrics import Metric
 import tensorflow as tf
 plt.style.use('ggplot')
 
+from backtesting import Strategy, Backtest
 
+class Threshold(Strategy):
+    """
+    Backtest the strategy based on the label
+    """
+    def init(self):
+        super().init()
+        self.label = self.data.Label
+    
+    def next(self):
+        
+        if self.label == 2:
+            self.buy()
+        elif self.label == 0:
+            self.sell()
+        else:
+            pass
     
 
 class WeightedFScore(Metric):

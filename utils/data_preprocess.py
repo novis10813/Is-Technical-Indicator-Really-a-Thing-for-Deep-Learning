@@ -23,7 +23,7 @@ class DataLabeling:
     """
     def __init__(self, data, window_size, alpha=0.55):
         # initialize data and parameters
-        self.data = data.set_index('Timestamp').loc[:, ['Open', 'High', 'Low', 'Close', 'Volume']]
+        self.data = data.loc[:, ['Timestamp' ,'Open', 'High', 'Low', 'Close', 'Volume']]
         self.data = self.data.set_index('Timestamp')
         self.data.index = pd.to_datetime(self.data.index)
         
@@ -74,11 +74,11 @@ class DataLabeling:
     
     def __func(self, df):
         if (df['Trend'] == 0) or (df['Trend'] == 1 and df['Previous_Trend'] == 1) or (df['Trend'] == 2 and df['Previous_Trend'] == 2):
-            return 0
-        elif (df['Trend'] == 1) and (df['Previous_Trend'] == 0 or 2):
             return 1
+        elif (df['Trend'] == 1) and (df['Previous_Trend'] == 0 or 2):
+            return True
         elif (df['Trend'] == 2) and (df['Previous_Trend'] == 0 or 1):
-            return 2
+            return False
     
     def __func_2(self, df):
         if df.Next_Close >= df.Close*(1+self.__alpha*df.STD):
