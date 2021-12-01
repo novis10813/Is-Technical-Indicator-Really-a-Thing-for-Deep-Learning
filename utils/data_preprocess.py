@@ -8,7 +8,7 @@ import tensorflow as tf
 
 class DataLabeling:
     """
-    This class will label the data with `Buy` `Sell` or `Hold` based on the dynamic threshold of log return.
+    This class will label the data with `Buy` `Sell` or `Hold` based on the dynamic threshold of close price.
     Threshold:
         if next period close price >= current close price * (1 + alpha * Volatility of last hour), tag it 'up' label
         elif next period close price <= current close price * (1 - alpha * Volatility of last hour), tag it 'down' label
@@ -38,7 +38,7 @@ class DataLabeling:
         data = data.assign(Trend=data.apply(self.__func_2, axis=1))
         # data['Trend'] = np.where(data.Next_Close >= data.Close*(1+self.__alpha*data.STD), 1,
         #                               np.where(data.Next_Close <= data.Close*(1-self.__alpha*data.STD), 2, 0))
-        data['Previous_Trend'] = data.Trend.shift(fill_value=0)
+        data['Previous_Trend'] = data.Trend.shift().dropna()
         # A cursed method
         # for i in range(len(data)):
         #     if data['Trend'][i] == 0:
@@ -68,8 +68,8 @@ class DataLabeling:
         data = data.dropna().drop(['Next_Close','STD','Trend', 'Previous_Trend'], axis=1)
         
         # Normalized the data
-        scaler = MinMaxScaler()
-        data.iloc[:, :-1] = scaler.fit_transform(data.iloc[:, :-1])
+        # scaler = MinMaxScaler()
+        # data.iloc[:, :-1] = scaler.fit_transform(data.iloc[:, :-1])
         return data
     
     def __func(self, df):
