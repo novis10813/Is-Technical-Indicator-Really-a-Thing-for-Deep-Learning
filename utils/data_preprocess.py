@@ -8,14 +8,14 @@ import tensorflow as tf
 
 class DataLabeling:
     """
-    This class will label the data with `Buy` `Sell` or `Hold` based on the dynamic threshold of close price.
+    This class will label the data with `up`, `down`, `flat` based on the dynamic threshold of close price.
     Threshold:
         if next period close price >= current close price * (1 + alpha * Volatility of last hour), tag it 'up' label
         elif next period close price <= current close price * (1 - alpha * Volatility of last hour), tag it 'down' label
         else tag it with 'flat'
     Base on the three categories, we can detect the trend of the price movement.
-    When the tags change from 'down' to 'up' or 'flat' to 'up', it will enter a long trade with a tag of 'Buy',
-    and the tags change from 'up' to 'down' or 'flat' to 'down', it will enter a short trade with a tag of 'Sell',
+    When the tags change from 'down' to 'up' or 'flat' to 'up', it will enter a long trade,
+    and the tags change from 'up' to 'down' or 'flat' to 'down', it will enter a short trade,
     otherwise, it will do nothing with a tag of 'Hold'.
     
     Also, it will automatically add features of technical indicators for you.
@@ -35,58 +35,23 @@ class DataLabeling:
         data['STD'] = data.Close.rolling(self.__window_size).std()
         data['Next_Close'] = data.Close.shift(-self.__window_size)
         data = data.fillna(0)
-        data = data.assign(Trend=data.apply(self.__func_2, axis=1))
+        data = data.assign(Trend=data.apply(self.__func, axis=1))
         # data['Trend'] = np.where(data.Next_Close >= data.Close*(1+self.__alpha*data.STD), 1,
         #                               np.where(data.Next_Close <= data.Close*(1-self.__alpha*data.STD), 2, 0))
-        data['Previous_Trend'] = data.Trend.shift().dropna()
-        # A cursed method
-        # for i in range(len(data)):
-        #     if data['Trend'][i] == 0:
-        #         data['Label'] = 'Hold'
-                
-        #     elif data['Trend'][i] == 1:
-        #         if data['Previous_Trend'][i] == 0:
-        #             data['Label'] = 'Buy'
-        #         elif data['Previous_Trend'][i] == -1:
-        #             data['Label'] = 'Buy'
-        #         else:
-        #             data['Label'] = 'Hold'
-            
-        #     elif data['Trend'][i] == -1:
-        #         if data['Previous_Trend'][i] == 0:
-        #             data['Label'] = 'Sell'
-        #         elif data['Previous_Trend'][i] == -1:
-        #             data['Label'] = 'Hold'
-        #         else:
-        #             data['Label'] = 'Sell'
-        
-        # data['Label'] = np.where(data.Trend > data.Previous_Trend, 'Buy',
-        #                          np.where(data.Trend < data.Previous_Trend, 'Sell', 'Hold'))
-        # There will be problems using this function under some situations,  like Trend is 0 and Previous_Trend is -1, so the label will be `Buy`,
-        # however, if the next Trend is -1, it says that the price is keeping going down, so you actually should not buy at that time.
-        data = data.assign(Label=data.apply(self.__func, axis=1))
-        data = data.dropna().drop(['Next_Close','STD','Trend', 'Previous_Trend'], axis=1)
+        data = data.dropna().drop(['Next_Close','STD'], axis=1)
         
         # Normalized the data
-        # scaler = MinMaxScaler()
-        # data.iloc[:, :-1] = scaler.fit_transform(data.iloc[:, :-1])
+        scaler = MinMaxScaler()
+        data.iloc[:, :-1] = scaler.fit_transform(data.iloc[:, :-1])
         return data
     
     def __func(self, df):
-        if (df['Trend'] == 0) or (df['Trend'] == 1 and df['Previous_Trend'] == 1) or (df['Trend'] == 2 and df['Previous_Trend'] == 2):
-            return 1
-        elif (df['Trend'] == 1) and (df['Previous_Trend'] == 0 or 2):
-            return True
-        elif (df['Trend'] == 2) and (df['Previous_Trend'] == 0 or 1):
-            return False
-    
-    def __func_2(self, df):
         if df.Next_Close >= df.Close*(1+self.__alpha*df.STD):
-            return 1
-        elif df.Next_Close <= df.Close*(1-self.__alpha*df.STD):
             return 2
-        else:
+        elif df.Next_Close <= df.Close*(1-self.__alpha*df.STD):
             return 0
+        else:
+            return 1
     
     def __make_TI(self, data):
         data['Chaikin'] = ta.AD(data.High, data.Low, data.Close, data.Volume)

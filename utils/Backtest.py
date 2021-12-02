@@ -8,13 +8,27 @@ plt.style.use('ggplot')
 
 from backtesting import Strategy, Backtest
 
+def backtest_preprocess(data):
+    data['Processed_Trend'] = data.Trend.replace(to_replace=1, method='bfill')
+    data['Previous_Trend'] = data.Processed_Trend.shift()
+    data = data.assign(Signal=data.apply(func, axis=1))
+
+def func(data):
+    if data['Processed_Trend'] > data['Previous_Trend']:
+        return 'Buy'
+    elif data['Processed_Trend'] < data['Previous_Trend']:
+        return 'Sell'
+    else:
+        return 'Hold'
+    
+
 class Threshold(Strategy):
     """
     Backtest the strategy based on the label
     """
     def init(self):
         super().init()
-        self.label = self.data.Label
+        self.label = self.data.Signal
     
     def next(self):
         
