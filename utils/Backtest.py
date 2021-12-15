@@ -22,22 +22,31 @@ def func(data):
         return 'Hold'
     
 
-class Threshold(Strategy):
-    """
-    Backtest the strategy based on the label
-    """
-    def init(self):
-        super().init()
-        self.label = self.data.Signal
+class Backtest:
+    def __init__(self, df=None, comission_fee=0.00075, initial_balance=0.001):
+        self.df = df
+        self.comission_fee = comission_fee
+        self.initial_balance = initial_balance
+        self.balance = initial_balance
+        self.crypto_bought = 0
+        self.crypto_sold = 0
+        self.crypto_held = 0
     
-    def next(self):
-        
-        if self.label == 2:
-            self.buy()
-        elif self.label == 0:
-            self.sell()
-        else:
-            pass
+    def test(self):
+        for i in range(len(self.df)):
+            if self.df['Signal'][i] == 'Hold':
+                pass
+            elif self.df['Signal'][i] == 'Buy' and self.balance > self.initial_balance/100:
+                self.crypto_bought = (self.balance/self.df['Close'][i]) * (1 - self.comission_fee)
+                self.balance -= self.crypto_bought * self.df['Close'][i]
+                self.crypto_held += self.crypto_bought
+            
+            elif self.df['Signal'][i] == 'Sell' and self.crypto_held > 0:
+                self.crypto_sold = self.crypto_held
+                self.balance += self.crypto_sold * self.df['Close'][i] * (1 - self.comission_fee)
+                self.crypto_held -= self.crypto_sold
+        print(f'balance: {self.balance} | crypto: {self.crypto_held}')
+        return self.balance
     
 
 class WeightedFScore(Metric):
