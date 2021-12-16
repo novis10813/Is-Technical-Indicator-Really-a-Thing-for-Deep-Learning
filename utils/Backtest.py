@@ -8,29 +8,19 @@ plt.style.use('ggplot')
 
 from backtesting import Strategy, Backtest
 
-def backtest_preprocess(data):
-    data['Processed_Trend'] = data.Trend.replace(to_replace=1, method='bfill')
-    data['Previous_Trend'] = data.Processed_Trend.shift()
-    data = data.assign(Signal=data.apply(func, axis=1))
-
-def func(data):
-    if data['Processed_Trend'] > data['Previous_Trend']:
-        return 'Buy'
-    elif data['Processed_Trend'] < data['Previous_Trend']:
-        return 'Sell'
-    else:
-        return 'Hold'
-    
-
 class Backtest:
     def __init__(self, df=None, comission_fee=0.00075, initial_balance=0.001):
-        self.df = df
+        # backtesting for every two hours
+        self.df = self.__backtest_preprocess(df[23::24])
         self.comission_fee = comission_fee
         self.initial_balance = initial_balance
         self.balance = initial_balance
         self.crypto_bought = 0
         self.crypto_sold = 0
         self.crypto_held = 0
+        
+        # Draw return
+        self.data = df
     
     def test(self):
         for i in range(len(self.df)):
@@ -47,6 +37,20 @@ class Backtest:
                 self.crypto_held -= self.crypto_sold
         print(f'balance: {self.balance} | crypto: {self.crypto_held}')
         return self.balance
+    
+    def __backtest_preprocess(self, data):
+        data['Processed_Trend'] = data.Trend.replace(to_replace=1, method='bfill')
+        data['Previous_Trend'] = data.Processed_Trend.shift()
+        data = data.assign(Signal=data.apply(self.__func, axis=1))
+        return data
+
+    def __func(self, data):
+        if data['Processed_Trend'] > data['Previous_Trend']:
+            return 'Buy'
+        elif data['Processed_Trend'] < data['Previous_Trend']:
+            return 'Sell'
+        else:
+            return 'Hold'
     
 
 class WeightedFScore(Metric):
