@@ -75,29 +75,23 @@ class DataLabeling:
     @property
     def TI_data(self):
         return self.__make_label(self.__make_TI(self.data))
-        
-def data_split(data, kfolds):
-    """
-    Create a function to split the data into subsets
-    
-    Parameters:
-        data: a pandas dataframe
-        kfolds: how many datasets you want
-    Returns:
-        few dataset
-    """
-    return np.array_split(data, kfolds)
 
-def train_val_test_split(data, train_size=0.7, val_size=0.2, test_size=0.1):
+def train_val_test_split(data, train_size=142416, val_size=192, test_size=96, interval=96, rolling=0):
     """
-    Split the data into train, val, test datasets
-    Warnings: The sum of the ratio should be 1 or there might be data leakage problem.
+    Split the data into train, val, test datasets with a number of 142416, 192, 96
+    and with an interval of 96
     """
-    n = len(data)
-    train_df = data[:int(n*train_size)]
-    val_df = data[int(n*train_size):int(n*(train_size+val_size))]
-    test_df = data[int(n*(1-test_size)):]
+    total_size = train_size+val_size+test_size+2*interval+rolling
+    if total_size > len(data.iloc[rolling:]):
+        print('Out of range, please set rolling smaller')
+        exit()
     
+    train_df = data.iloc[rolling:train_size]
+    val_start = rolling+train_size+interval
+    test_start = rolling+train_size+2*interval+val_size
+    val_df = data.iloc[val_start:val_start+val_size]
+    test_df = data.iloc[test_start:test_start+test_size]
+
     return train_df, val_df, test_df
 
 class DataPreprocess:
