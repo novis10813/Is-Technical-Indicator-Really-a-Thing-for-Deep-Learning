@@ -1,4 +1,4 @@
-from sklearn.preprocessing import MinMaxScaler
+from sklearn.preprocessing import MinMaxScaler, OneHotEncoder
 
 import pandas as pd
 import numpy as np
@@ -43,6 +43,9 @@ class DataLabeling:
         # Normalized the data
         scaler = MinMaxScaler()
         data.iloc[:, :-1] = scaler.fit_transform(data.iloc[:, :-1])
+        
+        # One hot encoded the label data
+        # data = data.join(pd.get_dummies(data.Trend)).drop(['Trend'], axis=1)
         return data
     
     def __func(self, df):
