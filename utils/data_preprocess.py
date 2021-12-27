@@ -89,7 +89,7 @@ def train_val_test_split(data, train_size=142416, val_size=192, test_size=96, in
         print('Out of range, please set rolling smaller')
         exit()
     
-    train_df = data.iloc[rolling:train_size]
+    train_df = data.iloc[rolling:rolling+train_size]
     val_start = rolling+train_size+interval
     test_start = rolling+train_size+2*interval+val_size
     val_df = data.iloc[val_start:val_start+val_size]
