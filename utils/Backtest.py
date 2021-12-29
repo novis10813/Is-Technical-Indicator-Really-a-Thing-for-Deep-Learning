@@ -6,8 +6,6 @@ from tensorflow.keras.metrics import Metric
 import tensorflow as tf
 plt.style.use('ggplot')
 
-from backtesting import Strategy, Backtest
-
 class Backtest:
     def __init__(self, df=None, comission_fee=0.00075, initial_balance=0.001):
         # backtesting for every two hours
@@ -36,7 +34,7 @@ class Backtest:
                 self.balance += self.crypto_sold * self.df['Close'][i] * (1 - self.comission_fee)
                 self.crypto_held -= self.crypto_sold
         print(f'balance: {self.balance} | crypto: {self.crypto_held}')
-        return self.balance
+        return self.balance + self.crypto_held * self.df['Close'][-1]
     
     def __backtest_preprocess(self, data):
         data['Processed_Trend'] = data.Trend.replace(to_replace=1, method='bfill')

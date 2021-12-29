@@ -84,6 +84,11 @@ def train_val_test_split(data, train_size=142416, val_size=192, test_size=96, in
     Split the data into train, val, test datasets with a number of 142416, 192, 96
     and with an interval of 96
     """
+    data_length = rolling+train_size+2*interval+val_size+test_size
+    if len(data.index) < data_length:
+        print(f'At least reduce rolling by {data_length - len(data.index)}')
+        return
+    
     total_size = train_size+val_size+test_size+2*interval+rolling
     if total_size > len(data.iloc[rolling:]):
         print('Out of range, please set rolling smaller')
