@@ -79,6 +79,7 @@ class DataLabeling:
     def TI_data(self):
         return self.__make_label(self.__make_TI(self.data))
 
+
 def train_val_test_split(data, train_size=142416, val_size=192, test_size=96, interval=96, rolling=0):
     """
     Split the data into train, val, test datasets with a number of 142416, 192, 96
@@ -101,6 +102,7 @@ def train_val_test_split(data, train_size=142416, val_size=192, test_size=96, in
     test_df = data.iloc[test_start:test_start+test_size]
 
     return train_df, val_df, test_df
+
 
 class DataPreprocess:
     """
